@@ -1,6 +1,6 @@
 # Obsidian 联动与 Vault 探测
 
-> 本能力**内置于 `Calculus_Professor` 自身**，不依赖外部 `obsidian` skill 是否安装。
+> 本能力**内置于 `calculus-professor` 自身**，不依赖外部 `obsidian` skill 是否安装。
 > 目标：在 Windows / macOS / Linux 上自动找到学生的 Obsidian 库；找不到就优雅回退。
 
 ---
@@ -79,7 +79,24 @@ python "scripts/find_vault.py" --json        # 机器可读输出
 [OK] 找到 Obsidian 库：D:\MyVault
      来源：%APPDATA%\obsidian\obsidian.json (open=true)
      笔记将写入：D:\MyVault\微积分\
+     [!] 这是自动探测结果，只能说明「学生最近打开过这个库」，
+         不能说明「应该把微积分笔记写在这里」。
+         首次写入前必须先向学生确认；若学生有专门的课程笔记库，
+         改用 --set "<库路径>" 指定，之后不再重复询问。
 ```
+
+⚠️ 上例中的 `[!]` 段**只在自动探测命中时出现**。若库来自 `config.json`、
+环境变量或 `--set` 显式指定，说明已经确认过，脚本不再重复提醒。
+
+JSON 输出中的对应字段：
+
+| 字段 | 含义 |
+|---|---|
+| `found` | 是否找到可用 vault |
+| `vault` | vault 绝对路径 |
+| `subdir` | vault 内笔记子目录名（已合并 config 设置与默认值） |
+| `notes_dir` | 笔记最终落点 |
+| `auto_detected` | **为 `true` 时必须先向学生确认再写入** |
 
 未找到时：
 
@@ -103,11 +120,18 @@ python "scripts/find_vault.py" --json        # 机器可读输出
 
 ```json
 {
-  "vault_path": "D:\\MyVault"
+  "vault_path": "D:\\MyVault",
+  "notes_subdir": "微积分"
 }
 ```
 
-写入前**校验目录存在**；不存在则提示并不要写入。
+- `vault_path`：vault 根目录。写入前**校验目录存在**；不存在则提示并且**不要写入**
+- `notes_subdir`：笔记在 vault 内的子目录名（可选，默认「微积分」）
+
+**笔记子目录的解析优先级**：命令行 `--notes-subdir` ＞ `config.json` 的 `notes_subdir` ＞ 默认「微积分」。
+
+> 自定义子目录的写法：
+> `python scripts/find_vault.py --set "D:\MyVault" --notes-subdir "我的微积分"`
 
 对应的学生说法：
 - "我的 Obsidian 库在 D:\MyVault"

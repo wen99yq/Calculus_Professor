@@ -1,4 +1,4 @@
-# Calculus_Professor 使用说明
+# calculus-professor 使用说明
 
 > 你好，我是你的**微积分助教**。
 > 我不是来给你答案的，我是来让你**不用再问答案**的。

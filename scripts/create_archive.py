@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Calculus_Professor — 学习档案初始化脚本。
+"""calculus-professor — 学习档案初始化脚本。
 
 从 templates/ 复制模板，在当前工作目录下生成学习档案骨架。
 幂等：已存在的文件不会被覆盖。

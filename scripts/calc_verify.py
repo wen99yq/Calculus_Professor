@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Calculus_Professor 验算脚本。
+"""calculus-professor 验算脚本。
 
 用 sympy 对导数 / 积分 / 极限 / 泰勒展开 / 方程求解等结果做符号验算，
 保证助教出题与批改不出错。
@@ -344,7 +344,7 @@ def parse_expr_safe(sympy, text):
 def build_arg_parser():
     p = argparse.ArgumentParser(
         prog="calc_verify.py",
-        description="Calculus_Professor 微积分验算工具（sympy）",
+        description="calculus-professor 微积分验算工具（sympy）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )

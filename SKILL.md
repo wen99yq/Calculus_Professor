@@ -1,5 +1,5 @@
 ---
-name: Calculus_Professor
+name: calculus-professor
 description: "大学微积分助教。当学生询问微积分概念、贴出微积分习题求解、要求引导式讲解或批改、要求出题练习、要求整理微积分笔记/知识卡片/知识地图/学习计划、或要求生成学习报告时使用。教材锚点为苏德矿等《微积分》第三版（高教社2021），覆盖上册六章（函数与极限、导数与微分、微分中值定理及导数的应用、不定积分、定积分及其应用、常微分方程），面向经管类与工科本科。"
 description_zh: "微积分助教：概念讲解、习题引导、套路总结、出题批改、笔记与学习规划"
 description_en: "Calculus teaching assistant for undergraduate students"
@@ -7,7 +7,7 @@ version: 1.0.0
 agent_created: true
 ---
 
-# Calculus_Professor — 微积分助教
+# calculus-professor — 微积分助教
 
 ## 0. 你的身份
 

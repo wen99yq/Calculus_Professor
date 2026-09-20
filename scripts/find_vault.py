@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Calculus_Professor — Obsidian Vault 探测脚本（自包含，不依赖外部 obsidian skill）。
+"""calculus-professor — Obsidian Vault 探测脚本（自包含，不依赖外部 obsidian skill）。
 
 探测优先级:
   1. 本 skill 目录下 config.json 的 vault_path
@@ -8,11 +8,25 @@
   3. 系统 obsidian.json 中 open=true 的库（跨平台）
   4. 备份策略：返回回退目录 微积分学习/笔记/
 
+笔记子目录（vault 内）解析优先级:
+  命令行 --notes-subdir  >  config.json 的 notes_subdir  >  默认「微积分」
+
 用法:
   python find_vault.py                       # 人类可读输出
   python find_vault.py --json                # 机器可读输出
   python find_vault.py --set "D:\\MyVault"    # 手动指定并写入 config.json
   python find_vault.py --notes-subdir 微积分  # 自定义 vault 内笔记子目录
+  python find_vault.py --show-config         # 查看 config.json 路径与内容
+
+退出码:
+  0 成功（找到库；若 auto_detected 为 true，仍须先向学生确认再写入）
+  1 参数或运行错误
+  3 未找到库，走回退目录
+
+变更记录:
+  2026-09-19
+    - 修正 config.json 的 notes_subdir 被写入却从不读取的问题（自定义子目录曾静默失效）
+    - 新增 auto_detected 标记：自动探测命中的库必须先向学生确认，不可直接写入
 """
 
 import argparse
@@ -138,7 +152,19 @@ def scan_obsidian_vaults():
 
 
 def resolve(vault_override=None):
-    """按优先级解析笔记根目录。返回 dict。"""
+    """按优先级解析笔记根目录。返回 dict。
+
+    返回字段:
+      found         是否找到可用 vault
+      vault         vault 绝对路径，或 None
+      source        来源说明
+      subdir        vault 内笔记子目录名（已合并 config.json 设置与默认值）
+      auto_detected 是否来自"自动探测"（True 时必须先向学生确认再写入）
+      notes         诊断信息
+    """
+    cfg = read_config()
+    cfg_subdir = str(cfg.get("notes_subdir") or DEFAULT_NOTES_SUBDIR)
+
     if vault_override:
         path = os.path.normpath(os.path.expanduser(vault_override))
         if os.path.isdir(path):
@@ -146,18 +172,19 @@ def resolve(vault_override=None):
                 "found": True,
                 "vault": path,
                 "source": "命令行 --set 指定",
-                "notes_dir": os.path.join(path, DEFAULT_NOTES_SUBDIR),
+                "subdir": cfg_subdir,
+                "auto_detected": False,
                 "notes": [],
             }
         return {
             "found": False,
             "vault": None,
             "source": "命令行 --set 指定的目录不存在",
-            "notes_dir": FALLBACK_NOTES_DIR,
+            "subdir": cfg_subdir,
+            "auto_detected": False,
             "notes": ["指定路径不是有效目录：%s" % path],
         }
 
-    cfg = read_config()
     if cfg.get("vault_path"):
         path = os.path.normpath(os.path.expanduser(str(cfg["vault_path"])))
         if os.path.isdir(path):
@@ -165,14 +192,16 @@ def resolve(vault_override=None):
                 "found": True,
                 "vault": path,
                 "source": "config.json 的 vault_path",
-                "notes_dir": os.path.join(path, DEFAULT_NOTES_SUBDIR),
+                "subdir": cfg_subdir,
+                "auto_detected": False,
                 "notes": [],
             }
         return {
             "found": False,
             "vault": None,
             "source": "config.json 中的 vault_path 已失效",
-            "notes_dir": FALLBACK_NOTES_DIR,
+            "subdir": cfg_subdir,
+            "auto_detected": False,
             "notes": ["config.json 指向的目录不存在：%s" % path],
         }
 
@@ -184,14 +213,16 @@ def resolve(vault_override=None):
                 "found": True,
                 "vault": path,
                 "source": "环境变量 CALCULUS_VAULT",
-                "notes_dir": os.path.join(path, DEFAULT_NOTES_SUBDIR),
+                "subdir": cfg_subdir,
+                "auto_detected": False,
                 "notes": [],
             }
         return {
             "found": False,
             "vault": None,
             "source": "环境变量 CALCULUS_VAULT 指向的目录不存在",
-            "notes_dir": FALLBACK_NOTES_DIR,
+            "subdir": cfg_subdir,
+            "auto_detected": False,
             "notes": ["CALCULUS_VAULT=%s 不是有效目录" % path],
         }
 
@@ -201,14 +232,16 @@ def resolve(vault_override=None):
             "found": True,
             "vault": vault,
             "source": notes[-1].replace("来源：", "") if notes else "obsidian.json",
-            "notes_dir": os.path.join(vault, DEFAULT_NOTES_SUBDIR),
+            "subdir": cfg_subdir,
+            "auto_detected": True,
             "notes": notes,
         }
     return {
         "found": False,
         "vault": None,
         "source": "未找到",
-        "notes_dir": FALLBACK_NOTES_DIR,
+        "subdir": cfg_subdir,
+        "auto_detected": False,
         "notes": notes,
     }
 
@@ -222,7 +255,12 @@ def main(argv=None):
     )
     p.add_argument("--json", action="store_true", help="以 JSON 输出")
     p.add_argument("--set", metavar="PATH", help="手动指定 vault 路径并写入 config.json")
-    p.add_argument("--notes-subdir", default=DEFAULT_NOTES_SUBDIR, help="vault 内笔记子目录名")
+    p.add_argument(
+        "--notes-subdir",
+        default=None,
+        help="vault 内笔记子目录名（默认取 config.json 的设置，未设置则用「%s」）"
+        % DEFAULT_NOTES_SUBDIR,
+    )
     p.add_argument("--show-config", action="store_true", help="打印 config.json 路径与内容")
     args = p.parse_args(argv)
 
@@ -239,17 +277,23 @@ def main(argv=None):
             return RET_ERROR
         data = read_config()
         data["vault_path"] = target
-        data.setdefault("notes_subdir", args.notes_subdir)
+        if args.notes_subdir:
+            data["notes_subdir"] = args.notes_subdir
+        else:
+            data.setdefault("notes_subdir", DEFAULT_NOTES_SUBDIR)
         if not write_config(data):
             return RET_ERROR
         print("[OK] 已记录 vault 路径：%s" % target)
         print("     config: %s" % CONFIG_PATH)
-        print("     笔记将写入：%s" % os.path.join(target, args.notes_subdir))
+        print("     笔记将写入：%s" % os.path.join(target, data["notes_subdir"]))
         return RET_OK
 
     result = resolve()
+
+    subdir = args.notes_subdir or result.get("subdir") or DEFAULT_NOTES_SUBDIR
+    result["subdir"] = subdir
     if result["found"]:
-        result["notes_dir"] = os.path.join(result["vault"], args.notes_subdir)
+        result["notes_dir"] = os.path.join(result["vault"], subdir)
     else:
         result["notes_dir"] = FALLBACK_NOTES_DIR
 
@@ -261,6 +305,11 @@ def main(argv=None):
         print("[OK] 找到 Obsidian 库：%s" % result["vault"])
         print("     来源：%s" % result["source"])
         print("     笔记将写入：%s" % result["notes_dir"])
+        if result["auto_detected"]:
+            print("     [!] 这是自动探测结果，只能说明「学生最近打开过这个库」，")
+            print("         不能说明「应该把微积分笔记写在这里」。")
+            print("         首次写入前必须先向学生确认；若学生有专门的课程笔记库，")
+            print("         改用 --set \"<库路径>\" 指定，之后不再重复询问。")
         return RET_OK
 
     print("[FALLBACK] 未找到 Obsidian 库")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Calculus_Professor — 学习报告生成脚本。
+"""calculus-professor — 学习报告生成脚本。
 
 读取学习档案（学生档案.md / 进度追踪.md / 错题本.md），生成一份可打印的 HTML 学习报告。
 

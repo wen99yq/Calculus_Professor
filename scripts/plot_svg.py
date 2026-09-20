@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Calculus_Professor 绘图辅助脚本。
+"""calculus-professor 绘图辅助脚本。
 
 把函数曲线转成可直接粘贴进内联 SVG 的坐标点列，或直接输出完整 SVG 片段。
 避免手算坐标导致图形失真。
